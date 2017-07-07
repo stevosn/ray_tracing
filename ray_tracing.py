@@ -221,6 +221,7 @@ def plot_ray(h, sequence, parallel=False, d=None,
     ax.axhline(color='k', linewidth=0.5, linestyle='--')
 
     if parallel:
+        d = d or 1.0
         rin_0 = [h + d/2, 0.0]
         rin_1 = [h - d/2, 0.0]
     else:
