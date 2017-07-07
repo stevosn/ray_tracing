@@ -150,14 +150,14 @@ def trace_parser(s):
 
     Example
     -------
-    s = 'd15 - l15/5.5 - d15'
+    s = 'd15 | l15/5.5 | d15'
     would result in a seqeunce of a distance element of 15 lu
     (lu=length units), followed by a Lens with focal length 15 lu
     with aperture 5.5 lu and another distance of 15 lu.
     '''
     sequence = []
 
-    for idx, si in enumerate(s.lower().replace(' ', '').split('-')):
+    for idx, si in enumerate(s.lower().replace(' ', '').split('|')):
         if si.startswith('d'):
             s_ = si.split('/')
             d = float(s_[0][1:])
