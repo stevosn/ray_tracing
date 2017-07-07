@@ -6,13 +6,12 @@ matplotlib.use('nbAgg')
 
 import matplotlib.pyplot as plt
 
-from scipy import arctan
 
 class OPE(object):
     def __init__(self, a=inf, d=None, f=None, name=''):
         """
         Optical path element used for ray tracing.
-        
+    
         Arguments
         ---------
         a : inf or float
@@ -22,7 +21,7 @@ class OPE(object):
         f : flaot or None
             Focal length of optical element.
         name : str
-            Name of the element.        
+            Name of the element.
         """
         self.aperture = a
         self.name = name
@@ -31,7 +30,7 @@ class OPE(object):
             self.c = -1 / f
         else:
             self.c = 0
-        
+
         if d:
             self.b = d
         else:
@@ -59,7 +58,7 @@ class OPE(object):
             if verbose:
                 print('{0:s}: passed aperture with height {1:1.3f}'.format(self.name, h))
             return True
-    
+
     def pass_aperture(self, r, verbose=False):
         """ Return nan vector if ray cannot pass aperture."""
         if self.passes_aperture(r, verbose=verbose):
@@ -72,11 +71,12 @@ class OPE(object):
         M = self.get_matrix()
         r_ = M * matrix(self.pass_aperture(r, verbose=verbose)).T
         return array(r_).flatten()
-    
+
     def get_travel_length(self):
         """ Length the optical element takes. """
         return self.b
-    
+
+
 def trace_ray(r, sequence):
     """
     Take r as input vector and trace the ray through the sequence of
@@ -95,10 +95,11 @@ def trace_ray(r, sequence):
 
     return (dist, ray0)
 
+
 def get_first_aperture(sequence):
     """
     get aperture of first lens in path and calculate distance to it.
-    
+
     Arguments
     ---------
     sequence : list of OPE
@@ -118,6 +119,7 @@ def get_first_aperture(sequence):
             break
     return (idx, d, a)
 
+
 def get_lens_pos(sequence):
     """
     Calculate positions of lenses.
@@ -129,8 +131,9 @@ def get_lens_pos(sequence):
             d_.append(d)
         else:
             d += m.get_travel_length()
-            
+
     return d_
+
 
 def get_angle_lim(h, d, a):
     """
@@ -140,10 +143,11 @@ def get_angle_lim(h, d, a):
     #return (arctan((a - h) / d), arctan(-(a + h) / d))
     return ((a - h) / d, -(a + h) / d)
 
+
 def trace_parser(s):
     '''
     Convert a string into a seqeunce of optical path elements.
-    
+
     Example
     -------
     s = 'd15 - l15/5.5 - d15'
@@ -173,12 +177,36 @@ def trace_parser(s):
         else:
             print('unknown element {}'.format(si))
         sequence.append(ope)
-        
+
     return sequence
 
-def plot_ray(h, sequence, axis=None, label=None, **pltkws):
+
+def plot_ray(h, sequence, parallel=False, d=None,
+             axis=None, label=None, **pltkws):
     """
     Plot the ray trace through the sequence of OPEs.
+
+    Arguments
+    ---------
+    h : float
+        height of ray.
+    sequence : list of OPE
+        sequence of optical path elements.
+    parallel : bool
+        Whether the source ray is a parallel beam.
+    d : float
+        Diameter of an incoming parallel beam.
+    axis : matplotlib.Axis
+    label : str
+        Label of the plotted line
+
+    Keyword Arguments
+    -----------------
+    kws passed to plt.plot(**pltkws)
+
+    Returns
+    -------
+    maplotlib.figure
     """
     if axis:
         fig = axis.figure
@@ -186,26 +214,32 @@ def plot_ray(h, sequence, axis=None, label=None, **pltkws):
     else:
         fig = plt.figure()
         ax = fig.add_subplot(111)
-    
+
     if not any([a in pltkws for a in ['c', 'col', 'color']]):
         pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
-    
+
     ax.axhline(color='k', linewidth=0.5, linestyle='--')
-    
-    # get distance and aperture of first aperture
-    _, d, aperture = get_first_aperture(sequence)
-    
-    a1, a2 = get_angle_lim(h, d, aperture)
-    
-    dist, r0 = trace_ray([h, a1], sequence)
-    dist, r1 = trace_ray([h, a2], sequence)
-    
+
+    if parallel:
+        rin_0 = [h + d/2, 0.0]
+        rin_1 = [h - d/2, 0.0]
+    else:
+        # get distance and aperture of first aperture
+        _, d, aperture = get_first_aperture(sequence)
+
+        a1, a2 = get_angle_lim(h, d, aperture)
+        rin_0 = [h, a1]
+        rin_1 = [h, a2]
+
+    dist, r0 = trace_ray(rin_0, sequence)
+    dist, r1 = trace_ray(rin_1, sequence)
+
     #pltkws = {'linewidth': 0.5}.update(pltkws)
-    
+
     ax.plot(dist, r0[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
     ax.plot(dist, r1[0, :], **pltkws)
-    
+
     for x in get_lens_pos(sequence):
         ax.axvline(x=x, ymin=0.02, ymax=0.98, linewidth=0.5, linestyle='--')
-    
+
     return fig
