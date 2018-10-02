@@ -11,7 +11,7 @@ class OPE(object):
     def __init__(self, a=inf, d=None, f=None, name=''):
         """
         Optical path element used for ray tracing.
-    
+
         Arguments
         ---------
         a : inf or float
@@ -52,11 +52,13 @@ class OPE(object):
         h = r.flatten()[0]
         if abs(h) > self.aperture:
             if verbose:
-                print('{0:s}: stopped at aperture with height {1:1.3f}'.format(self.name, h))
+                print('{0:s}: stopped at aperture with height {1:1.3f}'.format(
+                    self.name, h))
             return False
         else:
             if verbose:
-                print('{0:s}: passed aperture with height {1:1.3f}'.format(self.name, h))
+                print('{0:s}: passed aperture with height {1:1.3f}'.format(
+                    self.name, h))
             return True
 
     def pass_aperture(self, r, verbose=False):
@@ -85,7 +87,7 @@ def trace_ray(r, sequence):
     ray0 = zeros((2, len(sequence) + 1))
     ray0[:, 0] = r
 
-    #Do the calculations
+    # Do the calculations
     distances = [0.0]
     for idx, el in enumerate(sequence):
         ray0[:, idx + 1] = el.transmit(ray0[:, idx])
@@ -123,12 +125,16 @@ def get_first_aperture(sequence):
 def get_lens_pos(sequence):
     """
     Calculate positions of lenses.
+
+    Returns
+    -------
+    List of tuples with position and index of OPE in sequence.
     """
     d = 0.0
     d_ = []
-    for m in sequence:
+    for idx, m in enumerate(sequence):
         if m.is_lens():
-            d_.append(d)
+            d_.append((idx, d))
         else:
             d += m.get_travel_length()
 
@@ -140,7 +146,7 @@ def get_angle_lim(h, d, a):
     Calculate the upper and lower angles of a source that is at
     distance d to an aperture a.
     """
-    #return (arctan((a - h) / d), arctan(-(a + h) / d))
+    # return (arctan((a - h) / d), arctan(-(a + h) / d))
     return ((a - h) / d, -(a + h) / d)
 
 
@@ -240,7 +246,44 @@ def plot_ray(h, sequence, parallel=False, d=None,
     ax.plot(dist, r0[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
     ax.plot(dist, r1[0, :], **pltkws)
 
-    for x in get_lens_pos(sequence):
+    for idx, x in get_lens_pos(sequence):
         ax.axvline(x=x, ymin=0.02, ymax=0.98, linewidth=0.5, linestyle='--')
 
+    draw_apertures(sequence, axis=ax)
+
     return fig
+
+
+def draw_apertures(sequence, axis=None):
+    """
+    Draw the apertures in the sequence
+    """
+    if not axis:
+        ax = plt.gca()
+    else:
+        ax = axis
+
+        plt_kws = dict(linewidth=2, linestyle='-', color='darkslategrey')
+
+    a_max = get_max_aperture(sequence)
+
+    ylims = ax.get_ylim()
+    for idx, x in get_lens_pos(sequence):
+        a = sequence[idx].aperture
+        ax.plot([x, x], [-2*a_max, -a], **plt_kws)
+        ax.plot([x, x], [a, 2*a_max], **plt_kws)
+    ax.set_ylim(ylims)
+
+
+def get_max_aperture(sequence):
+    """
+    Return largest aperture in sequence.
+    """
+    apertures = [ope.aperture for ope in sequence if ope.aperture != inf]
+
+    if not apertures:
+        out = None
+    else:
+        out = max(apertures)
+
+    return out
