@@ -290,3 +290,104 @@ def get_max_aperture(sequence):
         out = max(apertures)
 
     return out
+
+
+class Trace(object):
+    """
+    Manages a tracing.
+    """
+
+    def __init__(self, sequence):
+        """
+        """
+        self.sequence = sequence
+        self.max_y = 0.0
+
+    def set_max_y(self, y):
+        if abs(y) > self.max_y:
+            self.max_y = abs(y)
+
+    def plot_rays(self, h, parallel=False, d=None, axis=None,
+                  label=None, plot_statics=True, **pltkws):
+        """
+        Plot the ray trace through the sequence of OPEs.
+
+        Arguments
+        ---------
+        h : float
+            height of ray.
+        sequence : list of OPE
+            sequence of optical path elements.
+        parallel : bool
+            Whether the source ray is a parallel beam.
+        d : float
+            Diameter of an incoming parallel beam.
+        axis : matplotlib.Axis
+        label : str
+            Label of the plotted line
+
+        Keyword Arguments
+        -----------------
+        kws passed to plt.plot(**pltkws)
+
+        Returns
+        -------
+        maplotlib.figure
+        """
+        sequence = self.sequence
+
+        if axis:
+            fig = axis.figure
+            ax = axis
+        else:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        if not any([a in pltkws for a in ['c', 'col', 'color']]):
+            pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+
+        if plot_statics:
+            # draw optical axis
+            ax.axhline(color='k', linewidth=0.5, linestyle='--')
+            # draw lenses
+            for idx, x in get_lens_pos(sequence):
+                ax.axvline(x=x, ymin=0.02, ymax=0.98,
+                           linewidth=0.5, linestyle='--')
+                # draw apertures
+            draw_apertures(sequence, axis=ax)
+
+        if parallel:
+            d = d or 1.0
+            rin_0 = [h + d/2, 0.0]
+            rin_1 = [h - d/2, 0.0]
+        else:
+            # get distance and aperture of first aperture
+            _, d, aperture = get_first_aperture(sequence)
+
+            a1, a2 = get_angle_lim(h, d, aperture)
+            rin_0 = [h, a1]
+            rin_1 = [h, a2]
+
+        dist, r0 = trace_ray(rin_0, sequence)
+        dist, r1 = trace_ray(rin_1, sequence)
+
+        max_y = max([max(abs(r0[0, :])), max(abs(r1[0, :]))])
+        self.set_max_y(max_y)
+
+        #pltkws = {'linewidth': 0.5}.update(pltkws)
+
+        ax.plot(dist, r0[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
+        ax.plot(dist, r1[0, :], **pltkws)
+
+        return fig
+
+    def adjust_ylims(self, axis):
+        """
+        Adjusts the y limits of the plot according to the apertures
+        and rays.
+        """
+        max_y = self.max_y
+        max_a = get_max_aperture(self.sequence)
+
+        y = max([max_y, max_a])
+        axis.set_ylim([-1.1*y, 1.1*y])
