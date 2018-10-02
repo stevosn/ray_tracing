@@ -188,7 +188,7 @@ def trace_parser(s):
 
 
 def plot_ray(h, sequence, parallel=False, d=None,
-             axis=None, label=None, **pltkws):
+             axis=None, label=None, plot_statics=True, **pltkws):
     """
     Plot the ray trace through the sequence of OPEs.
 
@@ -224,7 +224,15 @@ def plot_ray(h, sequence, parallel=False, d=None,
     if not any([a in pltkws for a in ['c', 'col', 'color']]):
         pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
 
-    ax.axhline(color='k', linewidth=0.5, linestyle='--')
+    if plot_statics:
+        # draw optical axis
+        ax.axhline(color='k', linewidth=0.5, linestyle='--')
+        # draw lenses
+        for idx, x in get_lens_pos(sequence):
+            ax.axvline(x=x, ymin=0.02, ymax=0.98,
+                       linewidth=0.5, linestyle='--')
+        # draw apertures
+        draw_apertures(sequence, axis=ax)
 
     if parallel:
         d = d or 1.0
@@ -246,11 +254,6 @@ def plot_ray(h, sequence, parallel=False, d=None,
     ax.plot(dist, r0[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
     ax.plot(dist, r1[0, :], **pltkws)
 
-    for idx, x in get_lens_pos(sequence):
-        ax.axvline(x=x, ymin=0.02, ymax=0.98, linewidth=0.5, linestyle='--')
-
-    draw_apertures(sequence, axis=ax)
-
     return fig
 
 
@@ -267,12 +270,12 @@ def draw_apertures(sequence, axis=None):
 
     a_max = get_max_aperture(sequence)
 
-    ylims = ax.get_ylim()
+    # ylims = ax.get_ylim()
     for idx, x in get_lens_pos(sequence):
         a = sequence[idx].aperture
         ax.plot([x, x], [-2*a_max, -a], **plt_kws)
         ax.plot([x, x], [a, 2*a_max], **plt_kws)
-    ax.set_ylim(ylims)
+    # ax.set_ylim(ylims)
 
 
 def get_max_aperture(sequence):
