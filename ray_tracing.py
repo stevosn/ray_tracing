@@ -266,7 +266,8 @@ def draw_apertures(sequence, axis=None):
     else:
         ax = axis
 
-        plt_kws = dict(linewidth=2, linestyle='-', color='darkslategrey')
+        plt_kws = dict(linewidth=2, linestyle='-',
+                       color='darkslategrey')
 
     a_max = get_max_aperture(sequence)
 
@@ -302,10 +303,47 @@ class Trace(object):
         """
         self.sequence = sequence
         self.max_y = 0.0
+        self._plot_axis = None
+        self._statics_drawn = None
+
+    def _init_axis(self):
+        self._statics_drawn = False
+        axis = plt.figure().add_subplot(111)
+        self._plot_axis = axis
+
+    @property
+    def plot_axis(self):
+        if not self._plot_axis:
+            self._init_axis()
+        return self._plot_axis
+
+    @plot_axis.setter
+    def plot_axis(self, axis):
+        self._plot_axis = axis
 
     def set_max_y(self, y):
         if abs(y) > self.max_y:
             self.max_y = abs(y)
+
+    def plot_statics(self, axis=None):
+        if axis:
+            self.plot_axis = axis
+        else:
+            axis = self.plot_axis
+
+        if not self._statics_drawn:
+            # draw optical axis
+            axis.axhline(color='k', linewidth=0.5, linestyle='--')
+            # draw lenses
+            for idx, x in get_lens_pos(self.sequence):
+                axis.axvline(x=x, ymin=0.02, ymax=0.98,
+                             linewidth=0.5, linestyle='--')
+                # draw apertures
+            draw_apertures(self.sequence, axis=axis)
+
+            self._statics_drawn = True
+
+        return axis
 
     def plot_rays(self, h, parallel=False, d=None, axis=None,
                   label=None, plot_statics=True, **pltkws):
@@ -334,27 +372,13 @@ class Trace(object):
         -------
         maplotlib.figure
         """
-        sequence = self.sequence
-
-        if axis:
-            fig = axis.figure
-            ax = axis
+        if plot_statics:
+            ax = self.plot_statics(axis=axis)
         else:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
+            ax = self.plot_axis
 
         if not any([a in pltkws for a in ['c', 'col', 'color']]):
             pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
-
-        if plot_statics:
-            # draw optical axis
-            ax.axhline(color='k', linewidth=0.5, linestyle='--')
-            # draw lenses
-            for idx, x in get_lens_pos(sequence):
-                ax.axvline(x=x, ymin=0.02, ymax=0.98,
-                           linewidth=0.5, linestyle='--')
-                # draw apertures
-            draw_apertures(sequence, axis=ax)
 
         if parallel:
             d = d or 1.0
@@ -362,14 +386,14 @@ class Trace(object):
             rin_1 = [h - d/2, 0.0]
         else:
             # get distance and aperture of first aperture
-            _, d, aperture = get_first_aperture(sequence)
+            _, d, aperture = get_first_aperture(self.sequence)
 
             a1, a2 = get_angle_lim(h, d, aperture)
             rin_0 = [h, a1]
             rin_1 = [h, a2]
 
-        dist, r0 = trace_ray(rin_0, sequence)
-        dist, r1 = trace_ray(rin_1, sequence)
+        dist, r0 = trace_ray(rin_0, self.sequence)
+        dist, r1 = trace_ray(rin_1, self.sequence)
 
         max_y = max([max(abs(r0[0, :])), max(abs(r1[0, :]))])
         self.set_max_y(max_y)
@@ -379,7 +403,7 @@ class Trace(object):
         ax.plot(dist, r0[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
         ax.plot(dist, r1[0, :], **pltkws)
 
-        return fig
+        return ax
 
     def adjust_ylims(self, axis):
         """
