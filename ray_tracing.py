@@ -520,7 +520,7 @@ class Trace(object):
 
         return x
 
-    def draw_entrance_pupil(self, axis=None):
+    def draw_entrance_pupil(self, axis=None, color='orangered'):
         """
         Draw the apparent entrance pupil.
         """
@@ -533,6 +533,6 @@ class Trace(object):
         y_max = get_max_aperture(self.sequence) if get_max_aperture(
             self.sequence) else 2 * a
 
-        plt_kws = dict(linewidth=2, linestyle='-', color='slategrey')
+        plt_kws = dict(linewidth=2, linestyle='-', color=color)
         ax.plot([x, x], [a, y_max], **plt_kws)
         ax.plot([x, x], [-y_max, -a], **plt_kws)
