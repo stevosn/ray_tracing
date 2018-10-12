@@ -29,7 +29,7 @@ class OPE(object):
         name : str
             Name of the element.
         """
-        self.aperture = a
+        self.aperture = abs(a)
         self.name = name
         self.focal_length = f
 
@@ -477,7 +477,7 @@ class Trace(object):
                     angle = angle / 2
             ratio = 0.0
             for idx, ope in enumerate(self.sequence):
-                ratio_ = rays[0, idx+1] / ope.aperture
+                ratio_ = abs(rays[0, idx+1]) / ope.aperture
                 if ratio_ > ratio:
                     ratio = ratio_
                     out = idx
