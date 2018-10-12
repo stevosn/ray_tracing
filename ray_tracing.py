@@ -31,7 +31,8 @@ class OPE(object):
         """
         self.aperture = abs(a)
         self.name = name
-        self.focal_length = f
+        self.focal_length = f if f else inf
+        self.distance = d if d else 0
 
         if f:
             self.c = -1 / f
@@ -42,6 +43,12 @@ class OPE(object):
             self.b = d
         else:
             self.b = 0
+
+    def copy(self):
+        """
+        Returns a copy of the OPE.
+        """
+        
 
     def is_lens(self):
         if self.get_matrix()[1, 0] != 0:
@@ -512,6 +519,23 @@ class Trace(object):
             print(f'aperture half-diameter = {a:1.2f}')
         return a
 
+    def indicate_aperture_stop(self, axis=None, color='orangered', verbose=False):
+        """
+        Draw the aperture stop in the ray tracing diagram.
+        """
+        if axis:
+            ax = axis
+        else:
+            ax = self.plot_axis
+        plt_kws = dict(linewidth=2, linestyle='-', color=color)
+
+        x = self.get_aperture_stop_position(verbose=verbose)
+        a = self.get_aperture_stop_size(verbose=verbose)
+        y_max = self._get_y_max(verbose=verbose)
+
+        ax.plot([x, x], [a, y_max], **plt_kws)
+        ax.plot([x, x], [-y_max, -a], **plt_kws)
+        
     def calc_entrance_pupil_position(self, verbose=False):
         """ sequence of OPEs preceeding the aperture stop """
         sequence_prec = self.sequence[:self.get_idx_aperture_stop()]
@@ -543,8 +567,22 @@ class Trace(object):
             ax = self.plot_axis
         x = self.calc_entrance_pupil_position(verbose=verbose)
         a = self.get_aperture_stop_size(verbose=verbose)
-        y_max = get_max_aperture(self.sequence) if get_max_aperture(self.sequence) else 2 * a
+        y_max = self.max_y
 
         plt_kws = dict(linewidth=2, linestyle='-', color=color)
         ax.plot([x, x], [a, y_max], **plt_kws)
         ax.plot([x, x], [-y_max, -a], **plt_kws)
+
+    def _get_y_max(self, verbose=False):
+        """
+        Return maximum y_value in plot.
+        """
+        if get_max_aperture(self.sequence):
+            y_max = 2 * get_max_aperture(self.sequence)
+        else:
+            y_max = 2 * self.max_y
+
+        if verbose > 1:
+            print(f'y_max = {y_max:1.2f}')
+
+        return y_max
