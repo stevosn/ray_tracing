@@ -490,7 +490,7 @@ class Trace(object):
         else:
             return False
 
-    def get_aperture_stop_position(self):
+    def get_aperture_stop_position(self, verbose=False):
         """
         Reduce sequence upto aperture and get distance from lens pos
         function.
@@ -498,29 +498,42 @@ class Trace(object):
         _, d = get_lens_pos(
             self.sequence[:self.get_idx_aperture_stop() + 1])[-1]
 
+        if verbose:
+            print(f'aperture stop position = {d:1.2f}')
+
         return d
 
-    def get_aperture_stop_size(self):
+    def get_aperture_stop_size(self, verbose=False):
         """
         Return the (half) aperture stop size.
         """
-        return self.sequence[self.get_idx_aperture_stop()].aperture
+        a = self.sequence[self.get_idx_aperture_stop()].aperture
+        if verbose:
+            print(f'aperture half-diameter = {a:1.2f}')
+        return a
 
-    def calc_entrance_pupil_position(self):
+    def calc_entrance_pupil_position(self, verbose=False):
         """ sequence of OPEs preceeding the aperture stop """
         sequence_prec = self.sequence[:self.get_idx_aperture_stop()]
-        d_ap = self.get_aperture_stop_position()
+        d_ap = self.get_aperture_stop_position(verbose=verbose)
         x = d_ap
         for idx, lens_pos in get_lens_pos(sequence_prec)[::-1]:
-            # object distance (reverse ray self (yields negative d_obj))
-            d_obj = lens_pos - x
+            # object distance
+            d_obj = x - lens_pos
             # image distance
             d_img = get_image_pos(d_obj, sequence_prec[idx].focal_length)
-            x = lens_pos + d_img
+            if verbose > 1:
+                print(f'imaging lens position = {lens_pos:1.2f}')
+                print(f'x_before = {x:1.2f}')
+                print(f'd_obj = {d_obj:1.2f}')
+                print(f'd_img = {d_img:1.2f}')
 
+            x = lens_pos - d_img
+            if verbose > 1:
+                print(f'x_after = {x:1.2f}')
         return x
 
-    def draw_entrance_pupil(self, axis=None, color='orangered'):
+    def draw_entrance_pupil(self, axis=None, color='orangered', verbose=False):
         """
         Draw the apparent entrance pupil.
         """
@@ -528,10 +541,9 @@ class Trace(object):
             ax = axis
         else:
             ax = self.plot_axis
-        x = self.calc_entrance_pupil_position()
-        a = self.get_aperture_stop_size()
-        y_max = get_max_aperture(self.sequence) if get_max_aperture(
-            self.sequence) else 2 * a
+        x = self.calc_entrance_pupil_position(verbose=verbose)
+        a = self.get_aperture_stop_size(verbose=verbose)
+        y_max = get_max_aperture(self.sequence) if get_max_aperture(self.sequence) else 2 * a
 
         plt_kws = dict(linewidth=2, linestyle='-', color=color)
         ax.plot([x, x], [a, y_max], **plt_kws)
