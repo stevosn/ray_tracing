@@ -44,11 +44,16 @@ class OPE(object):
         else:
             self.b = 0
 
-    def copy(self):
+    def copy(self, name=None):
         """
         Returns a copy of the OPE.
         """
-        
+        a = self.aperture
+        name = name if name else f'{self.name}_copy'
+        f = self.focal_length
+        d = self.distance
+
+        return OPE(a=a, d=d, f=f, name=name)
 
     def is_lens(self):
         if self.get_matrix()[1, 0] != 0:
@@ -541,6 +546,7 @@ class Trace(object):
         sequence_prec = self.sequence[:self.get_idx_aperture_stop()]
         d_ap = self.get_aperture_stop_position(verbose=verbose)
         x = d_ap
+        mag = 1.0
         for idx, lens_pos in get_lens_pos(sequence_prec)[::-1]:
             # object distance
             d_obj = x - lens_pos
@@ -553,9 +559,38 @@ class Trace(object):
                 print(f'd_img = {d_img:1.2f}')
 
             x = lens_pos - d_img
+            mag = mag * d_img / d_obj
             if verbose > 1:
                 print(f'x_after = {x:1.2f}')
         return x
+
+    def calc_entrance_pupil_size(self, verbose=False):
+        """
+        Return the size of the entrance pupil.
+        """
+        sequence_prec = self.sequence[:self.get_idx_aperture_stop()]
+        d_ap = self.get_aperture_stop_position(verbose=verbose)
+        x = d_ap
+        mag = 1.0
+        for idx, lens_pos in get_lens_pos(sequence_prec)[::-1]:
+            # object distance
+            d_obj = x - lens_pos
+            # image distance
+            d_img = get_image_pos(d_obj, sequence_prec[idx].focal_length)
+            if verbose > 1:
+                print(f'imaging lens position = {lens_pos:1.2f}')
+                print(f'magnification = {mag:1.2f}')
+                print(f'd_obj = {d_obj:1.2f}')
+                print(f'd_img = {d_img:1.2f}')
+
+            x = lens_pos - d_img
+            mag = mag * d_img / d_obj
+            if verbose > 1:
+                print(f'magnification_after = {mag:1.2f}')
+
+        en_pupil = self.get_aperture_stop_size() * abs(mag)
+
+        return en_pupil
 
     def draw_entrance_pupil(self, axis=None, color='orangered', verbose=False):
         """
@@ -566,7 +601,7 @@ class Trace(object):
         else:
             ax = self.plot_axis
         x = self.calc_entrance_pupil_position(verbose=verbose)
-        a = self.get_aperture_stop_size(verbose=verbose)
+        a = self.calc_entrance_pupil_size(verbose=verbose)
         y_max = self.max_y
 
         plt_kws = dict(linewidth=2, linestyle='-', color=color)
@@ -586,3 +621,16 @@ class Trace(object):
             print(f'y_max = {y_max:1.2f}')
 
         return y_max
+
+    def get_NA(self):
+        """
+        Return the NA of the optical system.
+
+        This is the entrance pupil size divided by the entrance pupil
+        distance.
+        """
+        d = self.calc_entrance_pupil_position()
+        a = self.calc_entrance_pupil_size()
+
+        return a/d
+        
