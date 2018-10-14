@@ -458,12 +458,13 @@ class Trace(object):
         n = 1 * plot_fan
 
         for h in heights:
-            pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+            
 
             if parallel:
                 d = d or 1.0
                 hs = list(linspace(h - d/2, h + d/2, n if n > 1 else 2))
                 while True:
+                    pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
                     try:
                         hin = hs.pop(0)
                         dist, r1 = trace_ray((hin, 0), self.sequence)
