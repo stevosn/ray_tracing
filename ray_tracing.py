@@ -1,4 +1,5 @@
 from numpy import array, matrix, inf, nan, ones, zeros, isinf, isfinite
+from numpy import linspace
 
 import matplotlib
 
@@ -181,7 +182,7 @@ def get_angle_lim(h, d, a):
     distance d to an aperture a.
     """
     # return (arctan((a - h) / d), arctan(-(a + h) / d))
-    return ((a - h) / d, -(a + h) / d)
+    return (-(a - h) / d, (a + h) / d)
 
 
 def trace_parser(s):
@@ -221,7 +222,7 @@ def trace_parser(s):
     return sequence
 
 
-def plot_ray(h, sequence, parallel=False, d=None,
+def plot_ray(h, sequence, parallel=False, d=None, plot_fan=False,
              axis=None, label=None, plot_statics=True, **pltkws):
     """
     Plot the ray trace through the sequence of OPEs.
@@ -236,6 +237,8 @@ def plot_ray(h, sequence, parallel=False, d=None,
         Whether the source ray is a parallel beam.
     d : float
         Diameter of an incoming parallel beam.
+    plot_fan : bool or int
+        Plot a fan of rays.
     axis : matplotlib.Axis
     label : str
         Label of the plotted line
@@ -268,25 +271,51 @@ def plot_ray(h, sequence, parallel=False, d=None,
         # draw apertures
         draw_apertures(sequence, axis=ax)
 
+    n = 1 * plot_fan
+    
     if parallel:
         d = d or 1.0
-        rin_0 = [h + d/2, 0.0]
-        rin_1 = [h - d/2, 0.0]
+
+        heights = linspace(h - d/2, h + d/2, n)
+        while True:
+            try:
+                dist, r1 = trace_ray((heights.pop(0), 0), sequence)
+                ax.plot(dist, r1[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
+            except:
+                # even
+                break
+            try:
+                dist, r2 = trace_ray((heights.pop(-1), 0), sequence)
+                ax.plot(dist, r2[0, :], **pltkws)
+            except:
+                # odd
+                break        
     else:
         # get distance and aperture of first aperture
         _, d, aperture = get_first_aperture(sequence)
 
         a1, a2 = get_angle_lim(h, d, aperture)
-        rin_0 = [h, a1]
-        rin_1 = [h, a2]
+        
+        if n > 0:
+            angles = linspace(a1, a2, n)
+        else:
+            angles = [a1, a2]
 
-    dist, r0 = trace_ray(rin_0, sequence)
-    dist, r1 = trace_ray(rin_1, sequence)
-
-    #pltkws = {'linewidth': 0.5}.update(pltkws)
-
-    ax.plot(dist, r0[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
-    ax.plot(dist, r1[0, :], **pltkws)
+        while True:
+            try:
+                ray1 = (h, angles.pop(0))
+                dist, r1 = trace_ray(ray1, sequence)
+                ax.plot(dist, r1[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
+            except:
+                # even
+                break
+            try:
+                ray2 = (h, angles.pop(-1))
+                dist, r2 = trace_ray(ray2, sequence)
+                ax.plot(dist, r2[0, :], **pltkws)
+            except:
+                # odd
+                break
 
     return fig
 
@@ -384,8 +413,8 @@ class Trace(object):
         """ Reset internal plot axis."""
         self._statics_drawn = False
 
-    def plot_rays(self, h, parallel=False, d=None, axis=None,
-                  label=None, plot_statics=True, **pltkws):
+    def plot_rays(self, h, parallel=False, d=None, plot_fan=False,
+                  axis=None, label=None, plot_statics=True, **pltkws):
         """
         Plot the ray trace through the sequence of OPEs.
 
@@ -399,6 +428,8 @@ class Trace(object):
             Whether the source ray is a parallel beam.
         d : float
             Diameter of an incoming parallel beam.
+        plot_fan : bool or int
+            Plot a fan of rays.
         axis : matplotlib.Axis
         label : str
             Label of the plotted line
@@ -424,37 +455,67 @@ class Trace(object):
         if not any([a in pltkws for a in ['c', 'col', 'color']]):
             cycle_colors = True
 
+        n = 1 * plot_fan
+
         for h in heights:
+            pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+
             if parallel:
                 d = d or 1.0
-                rin_0 = [h + d/2, 0.0]
-                rin_1 = [h - d/2, 0.0]
+                hs = list(linspace(h - d/2, h + d/2, n if n > 1 else 2))
+                while True:
+                    try:
+                        hin = hs.pop(0)
+                        dist, r1 = trace_ray((hin, 0), self.sequence)
+                        ax.plot(dist, r1[0, :], label=label or f'r = ({hin:1.2f}, 0)', **pltkws)
+                        self.set_max_y(max(abs(r1[0, :])))
+                    except:
+                        # even
+                        break
+                    try:
+                        dist, r2 = trace_ray((hs.pop(-1), 0), self.sequence)
+                        ax.plot(dist, r2[0, :], **pltkws)
+                        self.set_max_y(max(abs(r2[0, :])))
+                    except:
+                        # odd
+                        break 
             else:
                 if self.has_aperture():
                     # get distance and aperture of first aperture
                     _, d, aperture = get_first_aperture(self.sequence)
                     a1, a2 = get_angle_lim(h, d, aperture)
-                    rin_0 = [h, a1]
-                    rin_1 = [h, a2]
                 else:
                     try:
                         _, d = get_lens_pos(self.sequence)[0]
                     except:
                         d = inf
-                    rin_0 = [h, 0]
-                    rin_1 = [h, -h/d]
+                    a1 = -h/d
+                    a2 = 0
 
-            dist, r0 = trace_ray(rin_0, self.sequence)
-            dist, r1 = trace_ray(rin_1, self.sequence)
+                if n > 0:
+                    angles = list(linspace(a1, a2, n))
+                else:
+                    angles = [a1, a2]
 
-            max_y = max([max(abs(r0[0, :])), max(abs(r1[0, :]))])
-            self.set_max_y(max_y)
-
-            pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
-
-            ax.plot(dist, r0[0, :],
-                    label=label or 'h={:1.2f}'.format(h), **pltkws)
-            ax.plot(dist, r1[0, :], **pltkws)
+                while True:
+                    pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+                    try:
+                        ang = angles.pop(0)
+                        ray1 = (h, ang)
+                        dist, r1 = trace_ray(ray1, self.sequence)
+                        ax.plot(dist, r1[0, :], label=label or f'r =({h:1.2f}, {ang:1.2f})', **pltkws)
+                        self.set_max_y(max(abs(r1[0, :])))
+                    except:
+                        # even
+                        break
+                    try:
+                        ray2 = (h, angles.pop(-1))
+                        dist, r2 = trace_ray(ray2, self.sequence)
+                        ax.plot(dist, r2[0, :], **pltkws)
+                        self.set_max_y(max(abs(r2[0, :])))
+                    except:
+                        # odd
+                        break
 
         return ax
 
