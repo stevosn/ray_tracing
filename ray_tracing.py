@@ -357,11 +357,30 @@ def get_max_aperture(sequence):
     return out
 
 
+class Ray(object):
+    """
+    Defines properties of a ray.
+    """
+    def __init__(self, height, angle, intensity=1.0):
+        """
+        Create a ray which is defined by its height and its angle,
+
+        The angle is measured between the horizontal and teh ray,
+        counter-clockwise.
+        """
+        self.height = height
+        self.angle = angle
+        self.intensity = intensity
+
+    @property
+    def vector(self):
+        return (self.height, self.angle)
+
+        
 class Trace(object):
     """
     Manages a tracing.
     """
-
     def __init__(self, sequence):
         """
         """
