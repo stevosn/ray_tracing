@@ -196,6 +196,9 @@ def trace_parser(s):
     (lu=length units), followed by a Lens with focal length 15 lu
     with aperture 5.5 lu and another distance of 15 lu.
     '''
+    if not isinstance(s, str):
+        raise TypeError('Input string does not seem to be a string.')
+            
     sequence = []
 
     for idx, si in enumerate(s.lower().replace(' ', '').split('|')):
@@ -376,15 +379,28 @@ class Ray(object):
     def vector(self):
         return (self.height, self.angle)
 
+
         
-class Trace(object):
+class OpticalSystem(object):
     """
-    Manages a tracing.
+    Manages an optical system.
     """
     def __init__(self, sequence):
         """
+        Create optical system.
+
+        Sequence can be a string or a list of OPEs.
         """
-        self.sequence = sequence
+        try:
+            seq = trace_parser(sequence)
+        except TypeError:
+            pass
+        try:
+            seq = sequence[:]
+        except:
+            raise TypeError
+            
+        self.sequence = seq
         self.max_y = 0.0
         self._plot_axis = None
         self._statics_drawn = None
@@ -714,4 +730,3 @@ class Trace(object):
         a = self.calc_entrance_pupil_size()
 
         return a/d
-        
