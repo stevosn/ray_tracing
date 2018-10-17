@@ -532,6 +532,8 @@ class OpticalSystem(object):
 
         dist, r = trace_ray(ray, self.sequence)
         lines = ax.plot(dist, r[0, :], label=label, **pltkws)
+        self.set_max_y(max(abs(r[0, :])))
+        
         return lines
 
     @property
