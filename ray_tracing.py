@@ -363,14 +363,19 @@ def draw_apertures(sequence, axis=None):
     else:
         ax = axis
 
-    plt_kws = dict(linewidth=2, linestyle='-',
-                   color='darkslategrey')
+    plt_kws = dict(linewidth=2,
+                   linestyle='-',
+                   )
 
     a_max = get_max_aperture(sequence)
 
     if a_max:
         for idx, x in get_aperture_pos(sequence):
             a = sequence[idx].aperture
+            if sequence[idx].is_lens():
+                plt_kws['color'] = 'darkslategrey'
+            else:
+                plt_kws['color'] = 'teal'
             ax.plot([x, x], [-2*a_max, -a], **plt_kws)
             ax.plot([x, x], [a, 2*a_max], **plt_kws)
 
@@ -669,7 +674,7 @@ class OpticalSystem(object):
         return out
 
     def has_aperture(self):
-        if get_max_aperture(self.sequence):
+        if any(ope.has_aperture() for ope in self.sequence):
             return True
         else:
             return False
