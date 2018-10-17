@@ -445,6 +445,19 @@ class OpticalSystem(object):
         axis = plt.figure().add_subplot(111)
         self._plot_axis = axis
 
+
+    def add_ope(self, ope, index=None):
+        """
+        Add an optical path element to sequence of OPEs.
+
+        Provide index to insert, leave to append.
+        """
+        if index:
+            self.sequence.insert(index, ope)
+        else:
+            self.sequence.append(ope)
+            
+        
     @property
     def plot_axis(self):
         if not self._plot_axis:
