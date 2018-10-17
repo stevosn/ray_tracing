@@ -98,6 +98,12 @@ class OPE(object):
         """ Length the optical element takes. """
         return self.b
 
+    def has_aperture(self):
+        """ Return True is OPE has an aperture. """
+        if self.aperture < inf:
+            return True
+        else:
+            return False
 
 def trace_ray(r, sequence):
     """Take r as input vector and trace the ray through the sequence of
@@ -156,6 +162,24 @@ def get_first_aperture(sequence):
             break
     return (idx, d, a)
 
+def get_aperture_pos(sequence):
+    """
+    Calculate positions of apertures.
+
+    Returns
+    -------
+    List of tuples with index and position of OPE in sequence.
+    """
+    d = 0.0
+    d_ = []
+    for idx, ope in enumerate(sequence):
+        if ope.has_aperture():
+            d_.append((idx, d))
+        else:
+            d += ope.get_travel_length()
+
+    return d_
+
 
 def get_lens_pos(sequence):
     """
@@ -167,11 +191,11 @@ def get_lens_pos(sequence):
     """
     d = 0.0
     d_ = []
-    for idx, m in enumerate(sequence):
-        if m.is_lens():
+    for idx, ope in enumerate(sequence):
+        if ope.is_lens():
             d_.append((idx, d))
         else:
-            d += m.get_travel_length()
+            d += ope.get_travel_length()
 
     return d_
 
@@ -345,7 +369,7 @@ def draw_apertures(sequence, axis=None):
     a_max = get_max_aperture(sequence)
 
     if a_max:
-        for idx, x in get_lens_pos(sequence):
+        for idx, x in get_aperture_pos(sequence):
             a = sequence[idx].aperture
             ax.plot([x, x], [-2*a_max, -a], **plt_kws)
             ax.plot([x, x], [a, 2*a_max], **plt_kws)
