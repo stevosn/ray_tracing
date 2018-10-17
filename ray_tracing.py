@@ -256,130 +256,6 @@ def trace_parser(s):
     return sequence
 
 
-def plot_ray(h, sequence, parallel=False, d=None, plot_fan=False,
-             axis=None, label=None, plot_statics=True, **pltkws):
-    """
-    Plot the ray trace through the sequence of OPEs.
-
-    Arguments
-    ---------
-    h : float
-        height of ray.
-    sequence : list of OPE
-        sequence of optical path elements.
-    parallel : bool
-        Whether the source ray is a parallel beam.
-    d : float
-        Diameter of an incoming parallel beam.
-    plot_fan : bool or int
-        Plot a fan of rays.
-    axis : matplotlib.Axis
-    label : str
-        Label of the plotted line
-
-    Keyword Arguments
-    -----------------
-    kws passed to plt.plot(**pltkws)
-
-    Returns
-    -------
-    maplotlib.figure
-    """
-    if axis:
-        fig = axis.figure
-        ax = axis
-    else:
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-
-    if not any([a in pltkws for a in ['c', 'col', 'color']]):
-        pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
-
-    if plot_statics:
-        # draw optical axis
-        ax.axhline(color='k', linewidth=0.5, linestyle='--')
-        # draw lenses
-        for idx, x in get_lens_pos(sequence):
-            ax.axvline(x=x, ymin=0.02, ymax=0.98,
-                       linewidth=0.5, linestyle='--')
-        # draw apertures
-        draw_apertures(sequence, axis=ax)
-
-    n = 1 * plot_fan
-    
-    if parallel:
-        d = d or 1.0
-
-        heights = linspace(h - d/2, h + d/2, n)
-        while True:
-            try:
-                dist, r1 = trace_ray((heights.pop(0), 0), sequence)
-                ax.plot(dist, r1[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
-            except:
-                # even
-                break
-            try:
-                dist, r2 = trace_ray((heights.pop(-1), 0), sequence)
-                ax.plot(dist, r2[0, :], **pltkws)
-            except:
-                # odd
-                break        
-    else:
-        # get distance and aperture of first aperture
-        _, d, aperture = get_first_aperture(sequence)
-
-        a1, a2 = get_angle_lim(h, d, aperture)
-        
-        if n > 0:
-            angles = linspace(a1, a2, n)
-        else:
-            angles = [a1, a2]
-
-        while True:
-            try:
-                ray1 = (h, angles.pop(0))
-                dist, r1 = trace_ray(ray1, sequence)
-                ax.plot(dist, r1[0, :], label=label or 'h={:1.2f}'.format(h), **pltkws)
-            except:
-                # even
-                break
-            try:
-                ray2 = (h, angles.pop(-1))
-                dist, r2 = trace_ray(ray2, sequence)
-                ax.plot(dist, r2[0, :], **pltkws)
-            except:
-                # odd
-                break
-
-    return fig
-
-
-def draw_apertures(sequence, axis=None):
-    """
-    Draw the apertures in the sequence
-    """
-    if not axis:
-        ax = plt.gca()
-    else:
-        ax = axis
-
-    plt_kws = dict(linewidth=2,
-                   linestyle='-',
-                   )
-
-    a_max = get_max_aperture(sequence)
-
-    if a_max:
-        for idx, x in get_aperture_pos(sequence):
-            a = sequence[idx].aperture
-            if sequence[idx].is_lens():
-                plt_kws['color'] = 'darkslategrey'
-            else:
-                plt_kws['color'] = 'teal'
-            ax.plot([x, x], [-2*a_max, -a], **plt_kws)
-            ax.plot([x, x], [a, 2*a_max], **plt_kws)
-
-
 def get_max_aperture(sequence):
     """
     Return largest aperture in sequence.
@@ -489,13 +365,35 @@ class OpticalSystem(object):
             for idx, x in get_lens_pos(self.sequence):
                 axis.axvline(x=x, ymin=0.02, ymax=0.98,
                              linewidth=0.5, linestyle='--')
-                # draw apertures
-            draw_apertures(self.sequence, axis=axis)
+            # draw apertures
+            self.draw_apertures()
 
             self._statics_drawn = True
 
         return axis
 
+    def draw_apertures(self):
+        """
+        Draw the apertures in the sequence
+        """
+        ax = self.plot_axis
+
+        plt_kws = dict(linewidth=2, linestyle='-')
+
+        a_max = get_max_aperture(self.sequence)
+
+        if a_max:
+            for idx, x in get_aperture_pos(self.sequence):
+                a = self.sequence[idx].aperture
+                if self.sequence[idx].is_lens():
+                    plt_kws['color'] = 'darkslategrey'
+                else:
+                    plt_kws['color'] = 'teal'
+                ax.plot([x, x], [-2*a_max, -a], **plt_kws)
+                ax.plot([x, x], [a, 2*a_max], **plt_kws)
+
+    
+    
     def reset_plot(self):
         """ Reset internal plot axis."""
         self._statics_drawn = False
@@ -656,6 +554,13 @@ class OpticalSystem(object):
     def aperture_positions(self):
         pos = list(zip(*get_aperture_pos(self.sequence)))[1]
         return pos
+
+    @property
+    def aperture_sizes(self):
+        """ Return the aperture (half) sizes."""
+        aps = [ope.aperture for ope in self.sequence if ope.has_aperture()]
+        
+        return aps
     
     def adjust_ylims(self, axis):
         """
