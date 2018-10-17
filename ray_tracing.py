@@ -391,7 +391,7 @@ class OpticalSystem(object):
                     plt_kws['color'] = 'teal'
                 ax.plot([x, x], [-2*a_max, -a], **plt_kws)
                 ax.plot([x, x], [a, 2*a_max], **plt_kws)
-
+                self.set_max_y(2*a_max)
     
     
     def reset_plot(self):
@@ -573,7 +573,7 @@ class OpticalSystem(object):
         max_a = get_max_aperture(self.sequence)
 
         y = max([max_y, max_a])
-        axis.set_ylim([-1.1*y, 1.1*y])
+        axis.set_ylim([-0.9 * y, 0.9 * y])
 
     def get_idx_aperture_stop(self):
         """
@@ -642,7 +642,7 @@ class OpticalSystem(object):
             ax = axis
         else:
             ax = self.plot_axis
-        plt_kws = dict(linewidth=2, linestyle='-', color=color)
+        plt_kws = dict(linewidth=2.0, linestyle='-', color=color)
 
         x = self.get_aperture_stop_position(verbose=verbose)
         a = self.get_aperture_stop_size(verbose=verbose)
@@ -714,7 +714,7 @@ class OpticalSystem(object):
         a = self.calc_entrance_pupil_size(verbose=verbose)
         y_max = self.max_y
 
-        plt_kws = dict(linewidth=2, linestyle='-', color=color)
+        plt_kws = dict(linewidth=1.2, linestyle='-', color=color)
         ax.plot([x, x], [a, y_max], **plt_kws)
         ax.plot([x, x], [-y_max, -a], **plt_kws)
 
