@@ -139,6 +139,18 @@ def trace_ray(r, sequence):
     return (dist, ray0)
 
 
+def remove_apertures(sequence):
+    """
+    Return sequence without apertures
+    """
+    seq = []
+    for ope in sequence:
+        new_ope = ope.copy()
+        new_ope.aperture = inf
+        seq.append(new_ope)
+    return seq
+
+
 def get_first_aperture(sequence):
     """
     get aperture of first lens in path and calculate distance to it.
@@ -161,6 +173,14 @@ def get_first_aperture(sequence):
             a = m.aperture
             break
     return (idx, d, a)
+
+def get_pos_at_idx(sequence):
+    """
+    Return the position of the element at the given index.
+    """
+    d = sum([ope.get_travel_length() for ope in trace.sequence[:idx + 1]])
+    
+    return d
 
 def get_aperture_pos(sequence):
     """
@@ -564,7 +584,7 @@ class OpticalSystem(object):
         
         return aps
     
-    def adjust_ylims(self, axis):
+    def adjust_ylims(self):
         """
         Adjusts the y limits of the plot according to the apertures
         and rays.
@@ -573,7 +593,7 @@ class OpticalSystem(object):
         max_a = get_max_aperture(self.sequence)
 
         y = max([max_y, max_a])
-        axis.set_ylim([-0.9 * y, 0.9 * y])
+        self.plot_axis.set_ylim([-0.9 * y, 0.9 * y])
 
     def get_idx_aperture_stop(self):
         """
@@ -743,3 +763,46 @@ class OpticalSystem(object):
         a = self.calc_entrance_pupil_size()
 
         return a/d
+
+    def _check_aperture_stop_rays(self, extra_distance=100.0):
+        """
+        Re-trace the aperture stop.
+        """
+        # get only the sequence until the aperture and reverse it
+        back_seq = remove_apertures(self.sequence[:self.get_idx_aperture_stop()][::-1])
+        back_seq.append(OPE(d=extra_distance))
+
+        # trace a ray from the edge of the aperture with angle zero
+        # toward the next lense
+        a = self.get_aperture_stop_size()
+        ds_list = get_lens_pos(back_seq)
+        ds, rays = trace_ray((a, 0), back_seq)
+        ds_back = self.get_aperture_stop_position() - ds
+
+        pltkws = dict(linestyle='--', color='Grey')
+        self.plot_axis.plot(ds_back, rays[0], **pltkws)
+
+        # trace a ray from the edge of the aperture toward the
+        # center of the next lens
+        idx, d = ds_list[0]
+        ds, rays = trace_ray((a, -a/d), back_seq)
+        ds_back = self.get_aperture_stop_position() - ds
+        
+        self.plot_axis.plot(ds_back, rays[0], **pltkws)
+
+    def _trace_backward(self, idx, height=None, extra_distance=100.0):
+        """
+        Trace a ray backward throught the optical system
+        starting at the given index.
+        """
+        # get only the sequence until the aperture and reverse it
+        back_seq = remove_apertures(self.sequence[:idx][::-1])
+        back_seq.append(OPE(d=extra_distance))
+
+        # trace a ray from the edge of the aperture with angle zero
+        # toward the next lense
+        if not height:
+            height = self.sequence[idx].aperture
+        ds_list = get_lens_pos(back_seq)
+        ds, rays = trace_ray((height, 0), back_seq)
+        ds_back = get_pos_at_idx(self.sequence) - ds
