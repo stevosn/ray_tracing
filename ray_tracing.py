@@ -394,11 +394,10 @@ class OpticalSystem(object):
         try:
             seq = trace_parser(sequence)
         except TypeError:
-            pass
-        try:
-            seq = sequence[:]
-        except:
-            raise TypeError
+            try:
+                seq = sequence[:]
+            except:
+                raise TypeError('Sequence is not a proper string nor a sequence of OPEs.')
             
         self.sequence = seq
         self.max_y = 0.0
@@ -425,6 +424,10 @@ class OpticalSystem(object):
             self.max_y = abs(y)
 
     def plot_statics(self, axis=None):
+        """
+        Plots statics, i.e. Lenses etc. and creates an axis if not
+        given or present, yet.
+        """
         if axis:
             self.plot_axis = axis
         else:
@@ -493,13 +496,12 @@ class OpticalSystem(object):
         n = 1 * plot_fan
 
         for h in heights:
-            
-
             if parallel:
                 d = d or 1.0
                 hs = list(linspace(h - d/2, h + d/2, n if n > 1 else 2))
                 while True:
-                    pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+                    if cycle_colors:
+                        pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
                     try:
                         hin = hs.pop(0)
                         dist, r1 = trace_ray((hin, 0), self.sequence)
@@ -534,7 +536,8 @@ class OpticalSystem(object):
                     angles = [a1, a2]
 
                 while True:
-                    pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+                    if cycle_colors:
+                        pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
                     try:
                         ang = angles.pop(0)
                         ray1 = (h, ang)
@@ -555,6 +558,35 @@ class OpticalSystem(object):
 
         return ax
 
+    def plot_ray(self, ray, axis=None, **pltkws):
+        """
+        Plot a ray.
+
+        Arguments
+        ---------
+        ray : tuple(height, angle)
+
+        Returns
+        -------
+        lines : plotted lines in axis
+        """
+        if not self._statics_drawn:
+            ax = self.plot_statics(axis=axis)
+        else:
+            ax = self.plot_axis
+
+        if not any([a in pltkws for a in ['c', 'col', 'color']]):
+            pltkws['color'] = next(ax._get_lines.prop_cycler)['color']
+
+        if not 'label' in pltkws:
+            label = f'r =({ray[0]:1.2f}, {ray[1]:1.2f})'
+        else:
+            label = pltkws.pop('label')
+
+        dist, r = trace_ray(ray, self.sequence)
+        lines = ax.plot(dist, r[0, :], label=label, **pltkws)
+        return lines
+    
     def adjust_ylims(self, axis):
         """
         Adjusts the y limits of the plot according to the apertures
