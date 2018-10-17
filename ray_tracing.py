@@ -620,7 +620,8 @@ class OpticalSystem(object):
 
     @property
     def lens_positions(self):
-        return get_lens_pos(self.sequence)
+        pos = list(zip(*get_lens_positions(self.sequence)))[1]
+        return pos
 
     @property
     def ope_sequence(self):
