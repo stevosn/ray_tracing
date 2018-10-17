@@ -625,7 +625,7 @@ class OpticalSystem(object):
 
     @property
     def lens_positions(self):
-        pos = list(zip(*get_lens_positions(self.sequence)))[1]
+        pos = list(zip(*get_lens_pos(self.sequence)))[1]
         return pos
 
     @property
@@ -635,6 +635,15 @@ class OpticalSystem(object):
         """
         return [ope.name for ope in self.sequence]
 
+    @property
+    def names(self):
+        return self.ope_sequence
+
+    @property
+    def aperture_positions(self):
+        pos = list(zip(*get_aperture_pos(self.sequence)))[1]
+        return pos
+    
     def adjust_ylims(self, axis):
         """
         Adjusts the y limits of the plot according to the apertures
@@ -648,7 +657,7 @@ class OpticalSystem(object):
 
     def get_idx_aperture_stop(self):
         """
-        Find the optical element the defines the aperture stop of the
+        Find the optical element that defines the aperture stop of the
         system.
 
         Returns the index of the OPE in the sequence.
@@ -658,12 +667,17 @@ class OpticalSystem(object):
             out = None
         else:
             angle = 1e-10
+            ctr = 0
             while True:
+                ctr += 1
                 _, rays = trace_ray((0, angle), self.sequence)
                 if all(isfinite(rays[0])):
                     break
                 else:
                     angle = angle / 2
+                if ctr > 100:
+                    raise Exception('Unable to trace ray through sequence.')
+                
             ratio = 0.0
             for idx, ope in enumerate(self.sequence):
                 ratio_ = abs(rays[0, idx+1]) / ope.aperture
@@ -684,8 +698,7 @@ class OpticalSystem(object):
         Reduce sequence upto aperture and get distance from lens pos
         function.
         """
-        _, d = get_lens_pos(
-            self.sequence[:self.get_idx_aperture_stop() + 1])[-1]
+        _, d = get_aperture_pos(self.sequence[:self.get_idx_aperture_stop() + 1])[-1]
 
         if verbose:
             print(f'aperture stop position = {d:1.2f}')
