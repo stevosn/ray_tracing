@@ -205,19 +205,26 @@ def trace_parser(s):
         if si.startswith('d'):
             s_ = si.split('/')
             d = float(s_[0][1:])
+            name = f'D_{int(round(d)):d}'
             if len(s_) == 2:
                 a = float(s_[1])
-                ope = OPE(d=d, a=a, name='D' + str(idx))
+                ope = OPE(d=d, a=a, name=name)
             else:
-                ope = OPE(d=d, name='D' + str(idx))
+                ope = OPE(d=d, name=name)
         elif si.startswith('l'):
             s_ = si.split('/')
             f = float(s_[0][1:])
+            name = f'L_{int(round(d)):d}'
             if len(s_) == 2:
                 a = float(s_[1])
-                ope = OPE(f=f, a=a, name='L' + str(idx))
+                ope = OPE(f=f, a=a, name=name)
             else:
-                ope = OPE(f=f, name='L' + str(idx))
+                ope = OPE(f=f, name=name)
+        elif si.startswith('a'):
+            s_ = si.split('/')
+            a = float(s_[0][1:])
+            name = f'A_{int(round(d)):d}'
+            ope = OPE(a=a, name=name)
         else:
             print('unknown element {}'.format(si))
         sequence.append(ope)
@@ -586,7 +593,18 @@ class OpticalSystem(object):
         dist, r = trace_ray(ray, self.sequence)
         lines = ax.plot(dist, r[0, :], label=label, **pltkws)
         return lines
-    
+
+    @property
+    def lens_positions(self):
+        return get_lens_pos(self.sequence)
+
+    @property
+    def ope_sequence(self):
+        """
+        Return a list of names of the OPEs in the sequence.
+        """
+        return [ope.name for ope in self.sequence]
+
     def adjust_ylims(self, axis):
         """
         Adjusts the y limits of the plot according to the apertures
