@@ -1,5 +1,5 @@
 from numpy import array, matrix, inf, nan, ones, zeros, isinf, isfinite
-from numpy import linspace, matmul
+from numpy import linspace, matmul, sign
 
 import matplotlib
 
@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 def get_image_pos(object_distance, focal_length):
     s = object_distance
     f = focal_length
+    if s == f:
+        # print('Image at infinity')
+        return sign(s*f) * inf
     return 1 / (1 / f - 1 / s)
 
 
