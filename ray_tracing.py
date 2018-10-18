@@ -346,8 +346,8 @@ class OpticalSystem(object):
         """
         Return the tranfer matrix of the system.
         """
-        M = rt.matrix([[1, 0],
-                       [0, 1]])
+        M = matrix([[1, 0],
+                    [0, 1]])
         mats = [ope.get_matrix() for ope in self.sequence]
 
         for mat in mats:
@@ -574,16 +574,18 @@ class OpticalSystem(object):
         pos = list(zip(*get_lens_pos(self.sequence)))[1]
         return pos
 
-    @property
-    def ope_sequence(self):
+    def print_ope_sequence(self):
         """
         Return a list of names of the OPEs in the sequence.
         """
-        return [ope.name for ope in self.sequence]
+        n = len(self.sequence)
+        print('|'.join(f'{idx:^7d}' for idx in range(n)))
+        print('|'.join(f'{name:^7s}' for name in self.names))
+ 
 
     @property
     def names(self):
-        return self.ope_sequence
+        return [ope.name for ope in self.sequence]
 
     @property
     def aperture_positions(self):
