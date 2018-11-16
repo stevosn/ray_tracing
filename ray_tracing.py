@@ -232,7 +232,7 @@ def get_angle_lim(h, d, a):
     return (-(a - h) / d, (a + h) / d)
 
 
-def trace_parser(s):
+def optical_system_parser(s):
     '''
     Convert a string into a seqeunce of optical path elements.
 
@@ -327,7 +327,7 @@ class OpticalSystem(object):
         Sequence can be a string or a list of OPEs.
         """
         try:
-            seq = trace_parser(sequence)
+            seq = optical_system_parser(sequence)
         except TypeError:
             try:
                 seq = sequence[:]
