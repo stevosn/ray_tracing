@@ -23,7 +23,7 @@ def get_image_size(object_size, object_distance, focal_length):
     f = focal_length
     b = get_image_pos(s, f)
     
-    return A * b / s
+    return A * b / a
 
 
 class OPE(object):
