@@ -17,6 +17,15 @@ def get_image_pos(object_distance, focal_length):
     return 1 / (1 / f - 1 / s)
 
 
+def get_image_size(object_size, object_distance, focal_length):
+    A = object_size
+    s = object_distance
+    f = focal_length
+    b = get_image_pos(s, f)
+    
+    return A * b / a
+
+
 class OPE(object):
     def __init__(self, a=inf, d=None, f=None, name=''):
         """
