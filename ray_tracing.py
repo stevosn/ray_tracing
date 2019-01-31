@@ -849,11 +849,14 @@ class OpticalSystem(object):
         else:
             seq = self.sequence[idx:]
 
+        pos_offset = get_pos_at_idx(idx - 1, self.sequence)
+        
         seq.append(OPE(d=extra_distance))
 
         # trace a ray from the given height or the edge of the
         # aperture with angle zero toward the next lens
         positions, rays1 = trace_ray((height, 0), seq)
+        positions += pos_offset
 
         if plot:
             pltkws = dict(linestyle='--', color='Grey')
@@ -870,7 +873,8 @@ class OpticalSystem(object):
             return None
 
         positions, rays2 = trace_ray((height, -height / d), seq)
-
+        positions += pos_offset
+        
         if plot:
             self.plot_axis.plot(positions, rays2[0], **pltkws)
 
