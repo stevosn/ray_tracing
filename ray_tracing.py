@@ -791,7 +791,7 @@ class OpticalSystem(object):
 
         return a/d
 
-    def trace_backward(self, idx, height, no_apertures=False, extra_distance=100.0):
+    def trace_backward(self, idx, height, no_apertures=False, extra_distance=100.0, plot=True):
         """
         Trace a ray backward throught the optical system
         starting at the given index.
@@ -813,8 +813,9 @@ class OpticalSystem(object):
         positions, rays1 = trace_ray((height, 0), seq_back)
         pos_back = get_pos_at_idx(idx, self.sequence) - positions
 
-        pltkws = dict(linestyle='--', color='Grey')
-        self.plot_axis.plot(pos_back, rays1[0], **pltkws)
+        if plot:
+            pltkws = dict(linestyle='--', color='Grey')
+            self.plot_axis.plot(pos_back, rays1[0], **pltkws)
 
         ## trace a ray from the given height or the edge of the
         ## aperture toward the center of the next lens
@@ -827,12 +828,13 @@ class OpticalSystem(object):
             return None
 
         positions, rays2 = trace_ray((height, -height / d), seq_back)
-        
-        self.plot_axis.plot(pos_back, rays2[0], **pltkws)
+
+        if plot:
+            self.plot_axis.plot(pos_back, rays2[0], **pltkws)
 
         return (pos_back, rays1, rays2)
 
-    def trace_forward(self, idx, height, no_apertures=False, extra_distance=100.0):
+    def trace_forward(self, idx, height, no_apertures=False, extra_distance=100.0, plot=True):
         """
         Trace a ray throught the optical system starting at the given
         index.
@@ -853,8 +855,9 @@ class OpticalSystem(object):
         # aperture with angle zero toward the next lens
         positions, rays1 = trace_ray((height, 0), seq)
 
-        pltkws = dict(linestyle='--', color='Grey')
-        self.plot_axis.plot(positions, rays1[0], **pltkws)
+        if plot:
+            pltkws = dict(linestyle='--', color='Grey')
+            self.plot_axis.plot(positions, rays1[0], **pltkws)
 
         ## trace a ray from the given height or the edge of the
         ## aperture toward the center of the next lens
@@ -865,10 +868,11 @@ class OpticalSystem(object):
         except IndexError:
             print('Nothing to track.')
             return None
-        
+
         positions, rays2 = trace_ray((height, -height / d), seq)
 
-        self.plot_axis.plot(positions, rays2[0], **pltkws)
+        if plot:
+            self.plot_axis.plot(positions, rays2[0], **pltkws)
 
         return (positions, rays1, rays2)
         
